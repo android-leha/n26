@@ -57,11 +57,11 @@ public class TransactionService {
 
     /**
      * Refresh statistic
-     * Delay parameter should be defined depends on requirements of
+     * Delay parameter should be defined depends on requirements of accuracy/performance
      */
     @Scheduled(fixedDelay = 1)
     public synchronized void refreshStatistics() {
-        Instant start = Instant.now().minusMillis(PERIOD - 1);
+        Instant start = Instant.now().minusMillis(PERIOD);
 
         Iterator<Transaction> iterator = transactionList.iterator();
 
@@ -79,24 +79,19 @@ public class TransactionService {
                 count--;
                 sum = sum.subtract(transaction.getAmount());
             } else {
-                if (count == 0) {
-                    min = transaction.getAmount();
-                    max = transaction.getAmount();
-                } else {
-                    min = min.min(transaction.getAmount());
-                    max = max.max(transaction.getAmount());
-                }
+                min = min.min(transaction.getAmount());
+                max = max.max(transaction.getAmount());
             }
         }
-
+        // Update statistics object
         this.statistics = new Statistics(sum, min, max, count);
     }
 
     /**
-     * Remove all transactions
+     * Remove all transactions and clear statistics
      */
     public synchronized void clean() {
-        transactionList = new LinkedList<>();
+        transactionList.clear();
         statistics = new Statistics();
     }
 

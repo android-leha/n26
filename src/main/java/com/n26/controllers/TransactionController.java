@@ -16,11 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.HashMap;
-
-import static com.n26.services.TransactionService.PERIOD;
 
 @RestController
 public class TransactionController {
@@ -49,23 +45,8 @@ public class TransactionController {
     public void createTransaction(@RequestBody HashMap<String, String> payload) throws InvalidTransaction, InvalidRequestException, OldTransactionException {
         Transaction transaction = Transaction.createFromPayload(payload);
 
-        Instant now = Instant.now();
-        // Reject future transactions
-        if (transaction.getTimestamp().compareTo(now) > 0) {
-            throw new InvalidTransaction("Future transaction");
-        }
-
-        long diff = Duration.between(now, transaction.getTimestamp()).toMillis();
-
-        // Reject old transactions
-        if (transaction.getTimestamp().compareTo(now.minusMillis(PERIOD)) < 0) {
-            throw new OldTransactionException(diff);
-        }
-
         transactionService.add(transaction);
-
-
-        logger.info("Added {} since {} ms",  payload.toString(), diff);
+        logger.info("Added {}",  payload.toString());
     }
 
     /**
