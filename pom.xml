@@ -51,6 +51,7 @@
                         <configuration>
                             <sources>
                                 <source>src/it/java</source>
+                                <source>src/tests/java</source>
                             </sources>
                         </configuration>
                     </execution>
