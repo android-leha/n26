@@ -1,4 +1,4 @@
-package com.n26.model;
+package com.n26.models;
 
 import com.n26.exceptions.InvalidRequestException;
 import com.n26.exceptions.InvalidTransaction;
@@ -35,6 +35,10 @@ public class Transaction {
 
     public BigDecimal getAmount() {
         return amount;
+    }
+
+    public Double getAmountAsDouble() {
+        return amount.doubleValue();
     }
 
     public Instant getTimestamp() {
