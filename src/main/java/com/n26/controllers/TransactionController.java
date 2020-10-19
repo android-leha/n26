@@ -5,7 +5,6 @@ import com.n26.exceptions.InvalidRequestException;
 import com.n26.exceptions.InvalidTransaction;
 import com.n26.exceptions.OldTransactionException;
 import com.n26.models.Transaction;
-import com.n26.services.StatisticsService;
 import com.n26.services.TransactionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

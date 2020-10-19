@@ -1,7 +1,6 @@
 package com.n26.controllers;
 
-import com.n26.services.StatisticsService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.n26.services.TransactionService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -10,13 +9,12 @@ import java.util.Map;
 @RestController
 public class StatisticsController {
 
-    private final StatisticsService statisticsService;
+    private final TransactionService transactionService;
 
-    @Autowired
-    public StatisticsController(final StatisticsService statisticsService) {
-        this.statisticsService = statisticsService;
+
+    public StatisticsController(final TransactionService transactionService) {
+        this.transactionService = transactionService;
     }
-
 
     /**
      * Get recent statistics
@@ -24,7 +22,7 @@ public class StatisticsController {
      */
     @GetMapping("/statistics")
     public Map<String, Object> statistics() {
-        return statisticsService.getStatistics();
+        return transactionService.getStatistics().getAsMap();
     }
 
 }

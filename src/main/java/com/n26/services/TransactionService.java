@@ -1,14 +1,15 @@
 package com.n26.services;
 
+import com.n26.models.Statistics;
 import com.n26.models.Transaction;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Comparator;
-import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 
 @Service
 public class TransactionService {
@@ -21,13 +22,9 @@ public class TransactionService {
     /**
      * List of transactions
      */
-    private ConcurrentSkipListMap<Instant, Transaction> transactionList = new ConcurrentSkipListMap<>(Comparator.comparingLong(Instant::toEpochMilli));
+    private LinkedList<Transaction> transactionList = new LinkedList<>();
 
-    private final StatisticsService statisticsService;
-
-    public TransactionService(final StatisticsService statisticsService) {
-        this.statisticsService = statisticsService;
-    }
+    private Statistics statistics = new Statistics();
 
     /**
      * Add transaction asynchronously
@@ -35,34 +32,79 @@ public class TransactionService {
      */
     @Async
     public synchronized void add(final Transaction transaction) {
-        transactionList.put(transaction.getTimestamp(), transaction);
-        statisticsService.add(transaction);
+        transactionList.add(transaction);
+        Statistics statistics = this.statistics;
+
+        BigDecimal sum = statistics.getSum();
+        BigDecimal max = statistics.getMax();
+        BigDecimal min = statistics.getMin();
+        long count = statistics.getCount();
+
+
+        if (count++ == 0) {
+            min = transaction.getAmount();
+            max = transaction.getAmount();
+            sum = transaction.getAmount();
+        } else {
+            min = min.min(transaction.getAmount());
+            max = max.max(transaction.getAmount());
+            sum = sum.add(transaction.getAmount());
+        }
+
+        this.statistics = new Statistics(sum, min, max, count);
     }
+
 
     /**
-     * Remove old transactions
+     * Refresh statistic
+     * Delay parameter should be defined depends on requirements of
      */
-    @Scheduled(fixedRate = 500)
-    public void removeOutdated() {
-        transactionList.headMap(Instant.now().minusMillis(PERIOD)).clear();
-    }
-
     @Scheduled(fixedDelay = 1)
     public synchronized void refreshStatistics() {
-        statisticsService.updateStatistics(getLatest());
+        Instant start = Instant.now().minusMillis(PERIOD - 1);
+
+        Iterator<Transaction> iterator = transactionList.iterator();
+
+        Statistics statistics = this.statistics;
+
+        BigDecimal sum = statistics.getSum();
+        BigDecimal max = statistics.getMax();
+        BigDecimal min = statistics.getMin();
+        long count = statistics.getCount();
+
+        while (iterator.hasNext()) {
+            Transaction transaction = iterator.next();
+            if (transaction.getTimestamp().compareTo(start) < 0) {
+                iterator.remove();
+                count--;
+                sum = sum.subtract(transaction.getAmount());
+            } else {
+                if (count == 0) {
+                    min = transaction.getAmount();
+                    max = transaction.getAmount();
+                } else {
+                    min = min.min(transaction.getAmount());
+                    max = max.max(transaction.getAmount());
+                }
+            }
+        }
+
+        this.statistics = new Statistics(sum, min, max, count);
     }
 
     /**
      * Remove all transactions
      */
-    public void clean() {
-        transactionList.clear();
-        statisticsService.cleanStatistics();
+    public synchronized void clean() {
+        transactionList = new LinkedList<>();
+        statistics = new Statistics();
     }
 
-
-    public ConcurrentNavigableMap<Instant, Transaction> getLatest() {
-        return transactionList.tailMap(Instant.now().minusMillis(PERIOD));
+    /**
+     * Return cached statistics
+     * @return
+     */
+    public Statistics getStatistics() {
+        return statistics;
     }
-
 }
